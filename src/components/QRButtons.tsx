@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
-export function QRButton({
+export function QRButtons({
   haveValue,
   GenerateQR,
   handleSave,
@@ -12,7 +12,6 @@ export function QRButton({
   handleSave: () => void;
   handleShare: () => void;
 }) {
-  console.log('haveValue', haveValue);
   return (
     <>
       <View style={styles.sectionContainer}>
