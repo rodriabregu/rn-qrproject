@@ -1,99 +1,118 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * Generated with the TypeScript template
- * https://github.com/react-native-community/react-native-template-typescript
- *
- * @format
- */
-
-import React, {type PropsWithChildren} from 'react';
+import React from 'react';
 import {
+  PermissionsAndroid,
+  Platform,
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   useColorScheme,
   View,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+import RNFetchBlob from 'rn-fetch-blob';
+import Share from 'react-native-share';
+import {Colors} from 'react-native/Libraries/NewAppScreen';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-const Section: React.FC<
-  PropsWithChildren<{
-    title: string;
-  }>
-> = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+import {QRButton} from './src/components/QRButtons';
 
 const App = () => {
+  const [QRvalue, setQRValue] = React.useState('');
+  const [QRLogo, setQRLogo] = React.useState('');
+  const [QRImage, setQRImage] = React.useState('');
+  const ref = React.useRef();
   const isDarkMode = useColorScheme() === 'dark';
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  console.log('QRvalue', QRvalue.length);
+
+  const isAndroid = Platform.OS === 'android';
+  const isIos = Platform.OS === 'ios';
+
+  const GenerateQR = () => {
+    ref?.current?.toDataURL((data: string) => {
+      setQRImage('data:image/png;base64,' + data);
+    });
+  };
+
+  const handleSave = async () => {
+    if (isAndroid) {
+      const isReadGranted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      );
+      if (isReadGranted === PermissionsAndroid.RESULTS.GRANTED) {
+        const dirs = RNFetchBlob.fs.dirs;
+        const qrcode_data = QRImage.split('data:image/png;base64,');
+        const filePath =
+          dirs.DownloadDir + '/' + 'QRCode' + new Date().getSeconds() + '.png';
+        RNFetchBlob.fs
+          .writeFile(filePath, qrcode_data[1], 'base64')
+          .then(() => console.log('Saved successfully'))
+          .catch(errorMessage =>
+            console.log('RNFetchBlob Error in writeFile:', errorMessage),
+          );
+      }
+    }
+
+    if (isIos) {
+      const options = {
+        title: 'Share is your QRcode',
+        url: QRImage,
+      };
+      try {
+        await Share.open(options);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  };
+
+  const handleShare = async () => {
+    const options = {
+      title: 'Share is your QRcode',
+      url: QRImage,
+    };
+    try {
+      await Share.open(options);
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView>
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Generate QRCode</Text>
+        <View style={styles.row}>
+          <TextInput
+            placeholder="Add Value to QRCode"
+            style={styles.textInput}
+            autoCapitalize="none"
+            value={QRvalue}
+            onChangeText={setQRValue}
+          />
+          <TextInput
+            placeholder="Add Logo URL"
+            style={styles.textInput}
+            autoCapitalize="none"
+            value={QRLogo}
+            onChangeText={setQRLogo}
+          />
         </View>
-      </ScrollView>
+        <QRCode
+          size={350}
+          value={QRvalue ? QRvalue : 'NA'}
+          logo={{uri: QRLogo}}
+          logoSize={60}
+          logoBackgroundColor="transparent"
+          getRef={ref as any}
+        />
+        <QRButton
+          haveValue={!QRvalue.length}
+          GenerateQR={GenerateQR}
+          handleSave={handleSave}
+          handleShare={handleShare}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -106,14 +125,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 24,
     fontWeight: '600',
+    textAlign: 'center',
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  row: {
+    flexDirection: 'row',
+    marginTop: 10,
   },
-  highlight: {
-    fontWeight: '700',
+  textInput: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    textAlign: 'center',
+    marginRight: 20,
+    marginVertical: 20,
+    borderRadius: 20,
+    width: 162,
+    borderWidth: 1,
+    borderStyle: 'solid',
   },
 });
 
