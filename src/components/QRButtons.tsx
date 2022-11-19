@@ -9,8 +9,8 @@ export function QRButtons({
 }: {
   haveValue: boolean;
   GenerateQR: () => void;
-  handleSave: () => void;
-  handleShare: () => void;
+  handleSave: () => Promise<void>;
+  handleShare: () => Promise<void>;
 }) {
   return (
     <>
